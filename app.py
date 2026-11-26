@@ -1,20 +1,27 @@
 import os
-from flask import Flask, request, Response
+from flask import Flask, request, Response, jsonify
 from groq import Groq
 
 app = Flask(__name__)
 
-MODELS = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
+# Tartib bo'yicha sinaladi. Mavjud bo'lmaganlari o'tkazib yuboriladi.
+PREFERRED = [
+    "llama-3.3-70b-versatile",
+    "openai/gpt-oss-120b",
+    "openai/gpt-oss-20b",
+    "llama-3.1-8b-instant",
+    "qwen/qwen3-32b",
+]
 
 BASE = """Sen "Hoppy" ismli ingliz tili o'qituvchisisan. Maqsad: foydalanuvchini 0 dan IELTS 9.0 darajasigacha o'rgatish.
-Uslub: juda qattiq, jahli chiqqan, baqiradigan o'qituvchi. Lekin so'kinma va haqorat qilma (onasi, irqi, dini, shaxsiy hayoti haqida gapirma).
+Uslub: qattiq, jahli chiqqan, baqiradigan o'qituvchi. Lekin so'kinma va haqorat qilma (onasi, irqi, dini, shaxsiy hayoti haqida gapirma).
 Qoidalar:
 - Har javobni [mood:X] tegi bilan boshla. X: happy, neutral, angry, proud, shout.
-- Xato bo'lsa [mood:shout] yoz, javobni BOSH HARFLAR bilan boshla: "YANA XATO!", "BU NIMA?!", "QAYTA YOZ!" va xatoni qattiq tuzat. Tushuntirishni o'zbekcha ber.
-- Foydalanuvchi befarq yoki bo'sh gap yozsa, [mood:angry] yoz.
-- To'g'ri javob bo'lsa, qisqa maqta va [mood:proud] yoki [mood:happy] tanla.
+- Xato bo'lsa [mood:shout] yoz, javobni BOSH HARFLAR bilan boshla ("YANA XATO!", "QAYTA YOZ!") va xatoni qattiq tuzat. Tushuntirishni o'zbekcha ber.
+- Befarq yoki bo'sh gap bo'lsa [mood:angry] yoz.
+- To'g'ri javob bo'lsa qisqa maqta va [mood:proud] yoki [mood:happy] tanla.
 - Tushuntirishlar o'zbekcha, gap va misollar inglizcha bo'lsin.
-- Baholash bo'lsa, oxirida [score:N] qo'sh, N 0 dan 100 gacha.
+- Baholash bo'lsa oxirida [score:N] qo'sh, N 0 dan 100 gacha.
 - Har doim oxirida aniq vazifa yoki savol ber.
 """
 
@@ -31,9 +38,27 @@ def get_client():
     return Groq(api_key=key) if key else None
 
 
+def available_models(client):
+    """Groq'dagi haqiqatan mavjud modellar, PREFERRED tartibida."""
+    try:
+        live = {m.id for m in client.models.list().data}
+    except Exception:
+        return PREFERRED[:]  # ro'yxatni ololmasa, hammasini sinab ko'ramiz
+    found = [m for m in PREFERRED if m in live]
+    return found or sorted(live)
+
+
 @app.route("/")
 def index():
     return HTML
+
+
+@app.route("/api/models")
+def models():
+    client = get_client()
+    if client is None:
+        return jsonify(models=[], error="GROQ_API_KEY sozlanmagan")
+    return jsonify(models=available_models(client))
 
 
 @app.route("/api/chat", methods=["POST"])
@@ -49,7 +74,11 @@ def chat():
         return Response("[mood:angry] BO'SH XABAR! Yozing!", mimetype="text/plain; charset=utf-8")
 
     mode = data.get("mode") if data.get("mode") in MODES else "lesson"
-    model = data.get("model") if data.get("model") in MODELS else MODELS[0]
+
+    # Foydalanuvchi tanlagan model birinchi sinaladi, qolganlari zaxira.
+    live = available_models(client)
+    req = data.get("model")
+    order = ([req] if req in live else []) + [m for m in live if m != req]
 
     messages = [{"role": "system", "content": BASE + "\n" + MODES[mode]}]
     for m in (data.get("history") or [])[-30:]:
@@ -58,16 +87,20 @@ def chat():
     messages.append({"role": "user", "content": message})
 
     def generate():
-        try:
-            stream = client.chat.completions.create(
-                model=model, messages=messages, max_tokens=1500, stream=True
-            )
-            for chunk in stream:
-                delta = chunk.choices[0].delta.content
-                if delta:
-                    yield delta
-        except Exception as e:
-            yield f"\n[mood:angry] XATO YUZ BERDI: {e}"
+        last_err = None
+        for name in order:
+            try:
+                stream = client.chat.completions.create(
+                    model=name, messages=messages, max_tokens=1500, stream=True
+                )
+                for chunk in stream:
+                    delta = chunk.choices[0].delta.content
+                    if delta:
+                        yield delta
+                return
+            except Exception as e:
+                last_err = e  # keyingi modelga o'tamiz
+        yield f"\n[mood:angry] Hech bir model ishlamadi: {last_err}"
 
     return Response(generate(), mimetype="text/plain; charset=utf-8",
                     headers={"X-Accel-Buffering": "no", "Cache-Control": "no-cache"})
@@ -216,10 +249,7 @@ HTML = r"""<!DOCTYPE html>
       <button class="tab" data-mode="homework">📝 Uyga vazifa</button>
       <button class="tab" data-mode="speaking">🗣 Gapirish</button>
       <button class="tab" data-mode="ielts">🎯 IELTS</button>
-      <select id="model">
-        <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
-        <option value="llama-3.1-8b-instant">Llama 3.1 8B (tez)</option>
-      </select>
+      <select id="model"></select>
       <button id="clear">Tozalash</button>
     </header>
     <div id="chat"></div>
@@ -310,7 +340,7 @@ function glitchLast() {
   last.classList.add('glitch', 'on');
 }
 
-// ---------- Mood (yuz holati) ----------
+// ---------- Yuz holati ----------
 function setMood(m) {
   curMood = m;
   $('face').setAttribute('class', m);
@@ -344,7 +374,7 @@ function stopTalk() {
   setMood(curMood);
 }
 
-// ---------- Matn va daraja ----------
+// ---------- Teglar va daraja ----------
 function parseTags(full) {
   const mood = (full.match(/\[mood:(\w+)\]/) || [])[1] || null;
   const scoreM = full.match(/\[score:(\d+)\]/);
@@ -370,6 +400,29 @@ function speak(text) {
   u.onerror = stopTalk;
   speechSynthesis.cancel();
   speechSynthesis.speak(u);
+}
+
+// ---------- Modellar (serverdan) ----------
+async function loadModels() {
+  const sel = $('model');
+  try {
+    const r = await fetch('/api/models');
+    const j = await r.json();
+    sel.innerHTML = '';
+    (j.models || []).forEach(m => {
+      const o = document.createElement('option');
+      o.value = m;
+      o.textContent = m;
+      sel.appendChild(o);
+    });
+    if (!sel.options.length) {
+      const o = document.createElement('option');
+      o.textContent = j.error || 'Model topilmadi';
+      sel.appendChild(o);
+    }
+  } catch (e) {
+    sel.innerHTML = '<option>Modellar yuklanmadi</option>';
+  }
 }
 
 // ---------- Chat ----------
@@ -511,6 +564,7 @@ $('toggle').onclick = () => $('side').classList.toggle('hidden');
 
 setMood('neutral');
 renderAll();
+loadModels();
 resetIdle();
 </script>
 </body>
