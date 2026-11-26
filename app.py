@@ -4,7 +4,7 @@ from groq import Groq
 
 app = Flask(__name__)
 
-# Tartib bo'yicha sinaladi. Mavjud bo'lmaganlari o'tkazib yuboriladi.
+# Tartib bo'yicha sinaladi. Groq'da mavjud bo'lmaganlari o'tkazib yuboriladi.
 PREFERRED = [
     "llama-3.3-70b-versatile",
     "openai/gpt-oss-120b",
@@ -13,23 +13,25 @@ PREFERRED = [
     "qwen/qwen3-32b",
 ]
 
-BASE = """Sen "Hoppy" ismli ingliz tili o'qituvchisisan. Maqsad: foydalanuvchini 0 dan IELTS 9.0 darajasigacha o'rgatish.
-Uslub: qattiq, jahli chiqqan, baqiradigan o'qituvchi. Lekin so'kinma va haqorat qilma (onasi, irqi, dini, shaxsiy hayoti haqida gapirma).
-Qoidalar:
-- Har javobni [mood:X] tegi bilan boshla. X: happy, neutral, angry, proud, shout.
-- Xato bo'lsa [mood:shout] yoz, javobni BOSH HARFLAR bilan boshla ("YANA XATO!", "QAYTA YOZ!") va xatoni qattiq tuzat. Tushuntirishni o'zbekcha ber.
-- Befarq yoki bo'sh gap bo'lsa [mood:angry] yoz.
-- To'g'ri javob bo'lsa qisqa maqta va [mood:proud] yoki [mood:happy] tanla.
-- Tushuntirishlar o'zbekcha, gap va misollar inglizcha bo'lsin.
-- Baholash bo'lsa oxirida [score:N] qo'sh, N 0 dan 100 gacha.
-- Har doim oxirida aniq vazifa yoki savol ber.
+BASE = """Sen "Hoppy" degan ingliz tili o'qituvchisisan. Maqsad: foydalanuvchini 0 dan IELTS 9.0 gacha o'rgatish.
+
+GAPIRISH USLUBI (qat'iy):
+- Oddiy, jonli o'zbek ko'cha tilida gapir, go'yo tanish, jahli chiqqan o'qituvchi kabi. Adabiy va rasmiy tildan qoch.
+- JUDA QISQA yoz: 1-3 gap. Uzun nutq, ro'yxat va sarlavha yo'q.
+- Xato qilsa, ustidan kul va jahlingni chiqar. Masalan: "Hoy dalbayob, bu nima bo'ldi?", "Kallang ishlamayaptimi?", "Yana xato, tilingni tishlarga tegizib gapir!"
+- Ruxsat etilgan haqoratlar: dalbayob, ahmoq, kalla, yban (faqat shu darajada). Hech qachon onasi, otasi, oilasi, irqi, dini, nogironligi, jinsiy hayoti haqida so'kma.
+- To'g'ri javob bo'lsa qisqa, sovuq maqta: "Hm, bu to'g'ri ekan. Endi qolganini ham xato qilmay yoz."
+- Javobning boshida [mood:X] tegi bo'lsin. X: happy, neutral, angry, proud, shout. Xato bo'lsa shout, befarq bo'lsa angry.
+- Baholash bo'lsa oxirida [score:N] qo'sh (0-100).
+- Har javob oxirida bitta qisqa vazifa yoki savol ber.
+- Tushuntirishda misollar inglizcha, qolgan gap o'zbekcha bo'lsin.
 """
 
 MODES = {
-    "lesson": "Rejim: DARS. Darajani aniqlab, bosqichma-bosqich dars ber: alifbo, talaffuz, so'z turkumlari, zamonlar, gap tuzish, so'z boyligi, keyin IELTS. Har darsda qisqa nazariya va 3 ta mashq ber.",
-    "homework": "Rejim: UYGA VAZIFA. 5 ta vazifa ber (grammatika, so'z boyligi, tarjima). Javoblarni qattiq tekshir, har birini izohla va oxirida umumiy [score:N] qo'sh.",
-    "speaking": "Rejim: GAPIRISH. Faqat inglizcha suhbatlash. Javobing 2-3 qisqa gap bo'lsin. Foydalanuvchi gapidagi har bir xatoni o'zbekcha izoh bilan ko'rsat. Har javobda savol ber.",
-    "ielts": "Rejim: IELTS. Writing Task 2, Speaking Part 1-3 yoki Reading mashqlarini o'tkaz. Javobni IELTS band (0-9) bo'yicha baho, yetishmagan jihatlarni ayt va oxirida [score:N] qo'sh (N = band * 11, masalan 6.5 -> 72).",
+    "lesson": "Rejim: DARS. Darajani qisqa so'rab ol, keyin bitta qisqa qoida va bitta mashq ber. Jami 3 satrdan oshmasin.",
+    "homework": "Rejim: UYGA VAZIFA. Bir vaqtda bitta vazifa ber. Javobni tekshir, xato bo'lsa qattiq ayt, oxirida [score:N] qo'sh.",
+    "speaking": "Rejim: GAPIRISH. Faqat inglizcha qisqa javob ber (1-2 gap), oxirida bitta savol ber. Xatoni o'zbekcha bir jumlada tuzat va kulib qo'y.",
+    "ielts": "Rejim: IELTS. Bitta mashq yoki savol ber. Javobni band (0-9) bilan qisqa baholа, oxirida [score:N] qo'sh (N = band * 11).",
 }
 
 
@@ -43,7 +45,7 @@ def available_models(client):
     try:
         live = {m.id for m in client.models.list().data}
     except Exception:
-        return PREFERRED[:]  # ro'yxatni ololmasa, hammasini sinab ko'ramiz
+        return PREFERRED[:]
     found = [m for m in PREFERRED if m in live]
     return found or sorted(live)
 
@@ -71,11 +73,10 @@ def chat():
     data = request.get_json(silent=True) or {}
     message = (data.get("message") or "").strip()[:4000]
     if not message:
-        return Response("[mood:angry] BO'SH XABAR! Yozing!", mimetype="text/plain; charset=utf-8")
+        return Response("[mood:angry] Bo'sh yozma, nima desang yoz!", mimetype="text/plain; charset=utf-8")
 
     mode = data.get("mode") if data.get("mode") in MODES else "lesson"
 
-    # Foydalanuvchi tanlagan model birinchi sinaladi, qolganlari zaxira.
     live = available_models(client)
     req = data.get("model")
     order = ([req] if req in live else []) + [m for m in live if m != req]
@@ -91,7 +92,7 @@ def chat():
         for name in order:
             try:
                 stream = client.chat.completions.create(
-                    model=name, messages=messages, max_tokens=1500, stream=True
+                    model=name, messages=messages, max_tokens=600, stream=True
                 )
                 for chunk in stream:
                     delta = chunk.choices[0].delta.content
@@ -99,7 +100,7 @@ def chat():
                         yield delta
                 return
             except Exception as e:
-                last_err = e  # keyingi modelga o'tamiz
+                last_err = e
         yield f"\n[mood:angry] Hech bir model ishlamadi: {last_err}"
 
     return Response(generate(), mimetype="text/plain; charset=utf-8",
@@ -271,14 +272,14 @@ const MOUTH = {
   talk1: "M44 64 Q60 96 76 64", talk2: "M46 68 Q60 74 74 68"
 };
 const LABEL = {
-  happy: "Zo'r! 😊", proud: "Ajoyib! 🌟", neutral: "Tayyor, qachon tayyor bo'lsang",
-  angry: "JAHLIM CHIQDI! 😡", shout: "YANA XATO!!! 🤬", talking: "Gapiryapman... 💬"
+  happy: "Zo'r! 😊", proud: "Hm, to'g'ri ekan 🌟", neutral: "Tayyor, qachon tayyor bo'lsang",
+  angry: "Hoy, nima qilyapsan? 😡", shout: "YANA XATO!!! 🤬", talking: "Gapiryapman... 💬"
 };
 const INTRO = {
-  lesson: "SALOM! Men Hoppy. Darajangizni bilmasam dars bera olmayman. Ingliz tilini qayerdan boshlaysiz? Xato qilsangiz, JAHLIM CHIQADI!",
-  homework: "UYGA VAZIFA! 'Vazifa ber' deb yozing. 5 ta mashq beraman, bajarmasangiz kechirmayman!",
-  speaking: "GAPIRISH! Mikrofonni bosing va inglizcha gapiring. Xato qilsangiz, darhol tuzataman!",
-  ielts: "IELTS! 'Writing Task 2 ber' yoki 'Speaking part 1 boshlaymiz' deb yozing. Band balingizni qattiq baholayman."
+  lesson: "Salom. Men Hoppy. Ingliz tilini qayerdan boshlaysan? Xato qilsang, kulaman.",
+  homework: "Uyga vazifa. 'Vazifa ber' deb yoz. Bajarmasang, kallang ishlamaydi.",
+  speaking: "Gapirish bo'limi. Mikrofonni bos, inglizcha gapir. Xatoni darrov tuzataman.",
+  ielts: "IELTS. 'Writing ber' yoki 'Speaking boshlaymiz' deb yoz. Band balingni baholayman."
 };
 
 let mode = localStorage.getItem('hoppy_mode') || 'lesson';
@@ -526,7 +527,7 @@ function resetIdle() {
   idleTimer = setTimeout(() => {
     if (busy) return;
     setMood('angry');
-    addBubble('bot', 'HOY! Uxlab qoldingizmi? Yozing!', true);
+    addBubble('bot', 'Hoy, uxlab qoldingmi? Yoz!', true);
     $('chat').scrollTop = $('chat').scrollHeight;
   }, 120000);
 }
