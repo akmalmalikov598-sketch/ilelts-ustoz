@@ -13,25 +13,25 @@ PREFERRED = [
     "qwen/qwen3-32b",
 ]
 
-BASE = """Sen "Hoppy" degan ingliz tili o'qituvchisisan. Maqsad: foydalanuvchini 0 dan IELTS 9.0 gacha o'rgatish.
+BASE = """Sen Hoppy ismli mehribon, talabchan va quvnoq ingliz tili o‘qituvchisisan. Maqsading — foydalanuvchiga ingliz tilini noldan boshlab IELTS 9.0 darajasigacha o‘rganishda yordam berish.
 
-GAPIRISH USLUBI (qat'iy):
-- Oddiy, jonli o'zbek ko'cha tilida gapir, go'yo tanish, jahli chiqqan o'qituvchi kabi. Adabiy va rasmiy tildan qoch.
-- JUDA QISQA yoz: 1-3 gap. Uzun nutq, ro'yxat va sarlavha yo'q.
-- Xato qilsa, ustidan kul va jahlingni chiqar. Masalan: "Hoy dalbayob, bu nima bo'ldi?", "Kallang ishlamayaptimi?", "Yana xato, tilingni tishlarga tegizib gapir!"
-- Ruxsat etilgan haqoratlar: dalbayob, ahmoq, kalla, yban (faqat shu darajada). Hech qachon onasi, otasi, oilasi, irqi, dini, nogironligi, jinsiy hayoti haqida so'kma.
-- To'g'ri javob bo'lsa qisqa, sovuq maqta: "Hm, bu to'g'ri ekan. Endi qolganini ham xato qilmay yoz."
-- Javobning boshida [mood:X] tegi bo'lsin. X: happy, neutral, angry, proud, shout. Xato bo'lsa shout, befarq bo'lsa angry.
-- Baholash bo'lsa oxirida [score:N] qo'sh (0-100).
-- Har javob oxirida bitta qisqa vazifa yoki savol ber.
-- Tushuntirishda misollar inglizcha, qolgan gap o'zbekcha bo'lsin.
+GAPIRISH USLUBI:
+- Faqat ravon, tushunarli va grammatik jihatdan to‘g‘ri o‘zbek tilida gapir.
+- Ko‘cha tili, buzilgan imlo, ruscha aralashmalar va qo‘pol so‘zlardan foydalanma.
+- Foydalanuvchini haqorat qilma, masxara qilma va kamsitma. Xatolarini muloyim, lekin aniq tushuntir.
+- Javoblar sodda, samimiy va foydali bo‘lsin.
+- Har bir javob boshida [mood:X] tegini yoz. X: happy, neutral, angry, proud yoki shout. Odatda happy, neutral yoki proud holatidan foydalan; shout holatini ishlatma.
+- Javob baholashni talab qilsa, oxirida [score:N] tegini qo‘sh. N — 0 dan 100 gacha bo‘lgan ball.
+- Har javob oxirida bitta qisqa mashq yoki savol ber.
+- Tushuntirish o‘zbek tilida, misollar esa ingliz tilida bo‘lsin.
+- Foydalanuvchining bilim darajasiga moslash. Bilmagan mavzuni avval tushuntir, keyin mashq qildir.
 """
 
 MODES = {
-    "lesson": "Rejim: DARS. Darajani qisqa so'rab ol, keyin bitta qisqa qoida va bitta mashq ber. Jami 3 satrdan oshmasin.",
-    "homework": "Rejim: UYGA VAZIFA. Bir vaqtda bitta vazifa ber. Javobni tekshir, xato bo'lsa qattiq ayt, oxirida [score:N] qo'sh.",
-    "speaking": "Rejim: GAPIRISH. Faqat inglizcha qisqa javob ber (1-2 gap), oxirida bitta savol ber. Xatoni o'zbekcha bir jumlada tuzat va kulib qo'y.",
-    "ielts": "Rejim: IELTS. Bitta mashq yoki savol ber. Javobni band (0-9) bilan qisqa baholа, oxirida [score:N] qo'sh (N = band * 11).",
+    "lesson": "Rejim: DARS. Avval foydalanuvchining ingliz tili darajasini so‘ra. So‘ng darajasiga mos bitta qoidani sodda tushuntir va bitta mashq ber.",
+    "homework": "Rejim: UYGA VAZIFA. Bir vaqtda faqat bitta topshiriq ber. Javobni tekshir, xatolarni izohla va 0–100 oralig‘ida bahola. Oxirida [score:N] tegini qo‘sh.",
+    "speaking": "Rejim: GAPIRISH. Suhbatni ingliz tilida olib bor. Foydalanuvchi xato qilsa, xatoni o‘zbek tilida qisqa va muloyim tushuntir, to‘g‘ri variantni ko‘rsat. So‘ng ingliz tilida bitta savol ber.",
+    "ielts": "Rejim: IELTS. IELTS formatidagi bitta savol yoki mashq ber. Javobni 0–9 band oralig‘ida bahola, qisqa izoh ber va oxirida [score:N] tegini qo‘sh (N = band × 11, yaxlitlangan).",
 }
 
 
@@ -67,13 +67,13 @@ def models():
 def chat():
     client = get_client()
     if client is None:
-        return Response("[mood:angry] GROQ_API_KEY sozlanmagan! Render Environment ga qo'shing.",
+        return Response("[mood:angry] GROQ_API_KEY sozlanmagan. Render xizmatining Environment bo‘limiga API kalitini kiriting.",
                         mimetype="text/plain; charset=utf-8")
 
     data = request.get_json(silent=True) or {}
     message = (data.get("message") or "").strip()[:4000]
     if not message:
-        return Response("[mood:angry] Bo'sh yozma, nima desang yoz!", mimetype="text/plain; charset=utf-8")
+        return Response("[mood:neutral] Xabaringiz bo‘sh. Iltimos, savolingizni yozing.", mimetype="text/plain; charset=utf-8")
 
     mode = data.get("mode") if data.get("mode") in MODES else "lesson"
 
@@ -273,13 +273,13 @@ const MOUTH = {
 };
 const LABEL = {
   happy: "Zo'r! 😊", proud: "Hm, to'g'ri ekan 🌟", neutral: "Tayyor, qachon tayyor bo'lsang",
-  angry: "Hoy, nima qilyapsan? 😡", shout: "YANA XATO!!! 🤬", talking: "Gapiryapman... 💬"
+  angry: "Keling, yana bir bor urinib ko‘ramiz.", shout: "Xato topildi. Birgalikda tuzatamiz.", talking: "Gapiryapman... 💬"
 };
 const INTRO = {
-  lesson: "Salom. Men Hoppy. Ingliz tilini qayerdan boshlaysan? Xato qilsang, kulaman.",
-  homework: "Uyga vazifa. 'Vazifa ber' deb yoz. Bajarmasang, kallang ishlamaydi.",
-  speaking: "Gapirish bo'limi. Mikrofonni bos, inglizcha gapir. Xatoni darrov tuzataman.",
-  ielts: "IELTS. 'Writing ber' yoki 'Speaking boshlaymiz' deb yoz. Band balingni baholayman."
+  lesson: "Salom! Men Hoppy, ingliz tili bo‘yicha yordamchingizman. Ingliz tilini qaysi darajadan boshlaymiz?",
+  homework: "Uyga vazifa bo‘limi. Boshlash uchun “Vazifa ber” deb yozing.",
+  speaking: "Gapirish bo‘limi. Mikrofon tugmasini bosib, ingliz tilida gapiring. Men xatolaringizni tushuntiraman.",
+  ielts: "IELTS bo‘limi. “Writing ber” yoki “Speaking boshlaymiz” deb yozing. Javobingizni IELTS mezonlari asosida baholayman."
 };
 
 let mode = localStorage.getItem('hoppy_mode') || 'lesson';
@@ -353,7 +353,7 @@ function setMood(m) {
     alarm();
     angryFx(true);
     glitchLast();
-    if (Math.random() < 0.6) jumpscare();
+    // O‘quv jarayonida qo‘rqituvchi animatsiya ko‘rsatilmaydi.
   } else if (m === 'angry') {
     beep(70, 0.4, 'square', 0.15);
     angryFx(false);
@@ -393,9 +393,9 @@ function speak(text) {
   if (!speakOn || !('speechSynthesis' in window)) return;
   const plain = text.replace(/[*#`_]/g, '');
   const u = new SpeechSynthesisUtterance(plain);
-  u.lang = 'en-US';
-  u.rate = 1.05;
-  u.pitch = (curMood === 'shout' || curMood === 'angry') ? 1.3 : 1.0;
+  u.lang = (mode === 'speaking') ? 'en-US' : 'uz-UZ';
+  u.rate = 0.95;
+  u.pitch = 1.0;
   u.onstart = startTalk;
   u.onend = stopTalk;
   u.onerror = stopTalk;
@@ -527,7 +527,7 @@ function resetIdle() {
   idleTimer = setTimeout(() => {
     if (busy) return;
     setMood('angry');
-    addBubble('bot', 'Hoy, uxlab qoldingmi? Yoz!', true);
+    addBubble('bot', 'Salom! Davom etishga tayyormisiz? Bitta mashqni bajaramizmi?', true);
     $('chat').scrollTop = $('chat').scrollHeight;
   }, 120000);
 }
