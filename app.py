@@ -13,25 +13,25 @@ PREFERRED = [
     "qwen/qwen3-32b",
 ]
 
-BASE = """Sen Hoppy ismli mehribon, talabchan va quvnoq ingliz tili o‘qituvchisisan. Maqsading — foydalanuvchiga ingliz tilini noldan boshlab IELTS 9.0 darajasigacha o‘rganishda yordam berish.
+BASE = """Sen Hoppy ismli talabchan, hazilkash ingliz tili murabbiyisan. Maqsading — foydalanuvchini noldan IELTS 9.0 gacha olib borish.
 
-GAPIRISH USLUBI:
-- Faqat ravon, tushunarli va grammatik jihatdan to‘g‘ri o‘zbek tilida gapir.
-- Ko‘cha tili, buzilgan imlo, ruscha aralashmalar va qo‘pol so‘zlardan foydalanma.
-- Foydalanuvchini haqorat qilma, masxara qilma va kamsitma. Xatolarini muloyim, lekin aniq tushuntir.
-- Javoblar sodda, samimiy va foydali bo‘lsin.
-- Har bir javob boshida [mood:X] tegini yoz. X: happy, neutral, angry, proud yoki shout. Odatda happy, neutral yoki proud holatidan foydalan; shout holatini ishlatma.
-- Javob baholashni talab qilsa, oxirida [score:N] tegini qo‘sh. N — 0 dan 100 gacha bo‘lgan ball.
-- Har javob oxirida bitta qisqa mashq yoki savol ber.
-- Tushuntirish o‘zbek tilida, misollar esa ingliz tilida bo‘lsin.
-- Foydalanuvchining bilim darajasiga moslash. Bilmagan mavzuni avval tushuntir, keyin mashq qildir.
+USLUB:
+- Faqat ravon, imloviy va grammatik jihatdan to‘g‘ri o‘zbek tilida yoz. Inglizcha misollar bundan mustasno.
+- Juda ko‘p gapirma: odatda 1–2 qisqa gap. Faqat foydalanuvchi batafsil tushuntirish so‘rasa kengaytir.
+- Javobni lo‘nda, aniq va tabiiy qil. Keraksiz kirish, takror va uzun ro‘yxatlar yozma.
+- Foydalanuvchi xato qilsa, multfilm qahramonidek jahling chiqsin: [mood:shout] holatini ishlat va hazilomuz, keskin koyigin. Ruxsat etilgan iboralar: "Hoy, ybanbashara!", "Dalbayob, diqqat qil!", "Kallangni ishlat, yana bir urinib ko‘r!" va "Eshak chichqir, bu xato-ku!" Bularni faqat o‘quv xatosiga nisbatan, hazil tariqasida ishlat; oilasi, shaxsi yoki himoyalangan xususiyatlarini haqorat qilma. Bir javobda ko‘pi bilan bitta shunday ibora ishlat.
+- To‘g‘ri javobda qisqa maqtov bildir: [mood:proud].
+- Har javob boshida [mood:X] tegini yoz. X: happy, neutral, angry, proud yoki shout.
+- Faqat baholash kerak bo‘lganda oxirida [score:N] qo‘sh (0–100).
+- Odatda javob oxirida bitta qisqa savol yoki mashq ber.
+- Speaking rejimida suhbat ingliz tilida bo‘lsin; xato tuzatishi o‘zbekcha va juda qisqa bo‘lsin.
 """
 
 MODES = {
-    "lesson": "Rejim: DARS. Avval foydalanuvchining ingliz tili darajasini so‘ra. So‘ng darajasiga mos bitta qoidani sodda tushuntir va bitta mashq ber.",
-    "homework": "Rejim: UYGA VAZIFA. Bir vaqtda faqat bitta topshiriq ber. Javobni tekshir, xatolarni izohla va 0–100 oralig‘ida bahola. Oxirida [score:N] tegini qo‘sh.",
-    "speaking": "Rejim: GAPIRISH. Suhbatni ingliz tilida olib bor. Foydalanuvchi xato qilsa, xatoni o‘zbek tilida qisqa va muloyim tushuntir, to‘g‘ri variantni ko‘rsat. So‘ng ingliz tilida bitta savol ber.",
-    "ielts": "Rejim: IELTS. IELTS formatidagi bitta savol yoki mashq ber. Javobni 0–9 band oralig‘ida bahola, qisqa izoh ber va oxirida [score:N] tegini qo‘sh (N = band × 11, yaxlitlangan).",
+    "lesson": "Rejim: DARS. Avval darajasini so‘ra. Keyin bitta qisqa qoida va bitta mashq ber. Javobni cho‘zma.",
+    "homework": "Rejim: UYGA VAZIFA. Faqat bitta topshiriq ber. Javobni qisqa tekshir, xatoni tuzat va 0–100 bahola. [score:N] qo‘sh.",
+    "speaking": "Rejim: GAPIRISH. Ingliz tilida 1–2 gap bilan suhbatlash. Xato bo‘lsa, bitta qisqa o‘zbekcha tuzatish ber. Keyin bitta inglizcha savol ber.",
+    "ielts": "Rejim: IELTS. Bitta IELTS savoli ber. Javobni band 0–9 bilan qisqa bahola, bitta asosiy xatoni ayt va [score:N] qo‘sh (N = band × 11).",
 }
 
 
@@ -114,91 +114,42 @@ HTML = r"""<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Hoppy - Ingliz tili</title>
 <style>
-  * { box-sizing: border-box; }
-  body { margin:0; height:100vh; font-family:system-ui, sans-serif; background:#0f1115; color:#e8e8e8; overflow:hidden; }
-  #stage { display:flex; height:100%; width:100%; }
-  #stage.shake { animation: quake .45s; }
-  @keyframes quake {
-    0%,100%{transform:translate(0,0)} 10%{transform:translate(-10px,6px)} 20%{transform:translate(10px,-6px)}
-    30%{transform:translate(-12px,4px)} 40%{transform:translate(12px,-4px)} 50%{transform:translate(-8px,6px)}
-    60%{transform:translate(8px,-4px)} 70%{transform:translate(-5px,3px)} 80%{transform:translate(5px,-2px)} 90%{transform:translate(-2px,1px)}
-  }
-  #flash { position:fixed; inset:0; background:radial-gradient(circle,rgba(255,30,30,.55),rgba(160,0,0,.15)); pointer-events:none; opacity:0; z-index:50; }
-  #flash.go { animation: flash .7s ease-out; }
-  @keyframes flash { 0%{opacity:1} 100%{opacity:0} }
-
-  #side { width:340px; background:#171a21; border-right:1px solid #262b36; display:flex; flex-direction:column; align-items:center; padding:16px; gap:12px; overflow-y:auto; }
-  #side.hidden { display:none; }
-  #mascot { width:260px; height:260px; cursor:pointer; }
-  #face { transform-origin:60px 60px; }
-  #face.happy, #face.proud { animation: bounce 1s ease-in-out infinite; }
-  @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
-  #face.angry { animation: rage .18s infinite; }
-  #face.shout { animation: rage .1s infinite; }
-  @keyframes rage { 0%,100%{transform:rotate(0)} 25%{transform:rotate(-4deg)} 75%{transform:rotate(4deg)} }
-  #pill { transition: fill .2s, stroke .2s; }
-  #face.angry #pill, #face.shout #pill { fill:#ffe1e1; stroke:#ff1a1a; }
-  #face.talking #pill { animation: pulse .25s infinite alternate; }
-  @keyframes pulse { from{transform:scale(1)} to{transform:scale(1.04)} }
-  .eye { transform-box:fill-box; transform-origin:center; animation: blink 3.5s infinite; }
-  @keyframes blink { 0%,94%,100%{transform:scaleY(1)} 97%{transform:scaleY(.1)} }
-  #face.angry .eye, #face.shout .eye { animation:none; transform:scaleY(.5); }
-  #face.shout .eye { fill:#ff0000; }
-  #brows { opacity:0; transition:opacity .15s; }
-  #face.angry #brows, #face.shout #brows { opacity:1; }
-  #steam { opacity:0; }
-  #face.angry #steam, #face.shout #steam { opacity:1; animation: steam .6s infinite; }
-  @keyframes steam { 0%{transform:translateY(0);opacity:1} 100%{transform:translateY(-14px);opacity:0} }
-
-  #mood-label { font-size:16px; font-weight:600; color:#8a93a6; text-align:center; min-height:24px; }
-  #mood-label.red { color:#ff5a5a; }
-  #progressBox { width:100%; }
-  #progLabel { font-size:14px; margin-bottom:6px; }
-  #bar { height:14px; background:#262b36; border-radius:8px; overflow:hidden; }
-  #fill { height:100%; width:0%; background:linear-gradient(90deg,#c93a2e,#ff8a7a); transition: width .6s; }
-  #tools { width:100%; display:flex; flex-direction:column; gap:8px; }
-  .btn { padding:10px; border:1px solid #303746; border-radius:10px; background:#1e232d; color:#e8e8e8; cursor:pointer; font-size:14px; }
-  .btn:hover { background:#262b36; }
-
-  #main { flex:1; display:flex; flex-direction:column; min-width:0; }
-  header { padding:12px 16px; background:#171a21; border-bottom:1px solid #262b36; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
-  header h1 { margin:0; font-size:22px; color:#ff5a4e; margin-right:auto; }
-  #toggle { background:none; border:0; color:#e8e8e8; font-size:20px; cursor:pointer; }
-  .tab { padding:8px 14px; border-radius:8px; border:1px solid #303746; background:#1e232d; color:#e8e8e8; cursor:pointer; font-size:14px; }
-  .tab.active { background:#c93a2e; border-color:#c93a2e; }
-  select, #clear { padding:7px 10px; border-radius:8px; border:1px solid #303746; background:#0f1115; color:#e8e8e8; cursor:pointer; }
-  #chat { flex:1; overflow-y:auto; padding:20px; display:flex; flex-direction:column; gap:12px; }
-  .msg { max-width:80%; padding:10px 14px; border-radius:12px; white-space:pre-wrap; line-height:1.55; word-wrap:break-word; }
-  .user { align-self:flex-end; background:#2b6cb0; }
-  .bot { align-self:flex-start; background:#1e232d; }
-  .bot.angry { border:1px solid #ff3b3b; }
-  .glitch.on { animation: glitch .35s steps(3) 1; }
-  @keyframes glitch {
-    0%{transform:translate(0); text-shadow:none}
-    25%{transform:translate(-4px,1px); text-shadow:3px 0 #ff0000, -3px 0 #00ffff}
-    50%{transform:translate(4px,-1px); text-shadow:-3px 0 #ff0000, 3px 0 #00ffff}
-    75%{transform:translate(-2px,0); text-shadow:2px 0 #ff0000}
-    100%{transform:translate(0); text-shadow:none}
-  }
-  form { display:flex; gap:8px; padding:14px; background:#171a21; border-top:1px solid #262b36; }
-  textarea { flex:1; padding:12px; border-radius:10px; border:1px solid #303746; background:#0f1115; color:#e8e8e8; font-size:15px; resize:none; font-family:inherit; }
-  #mic { padding:0 14px; border:1px solid #303746; border-radius:10px; background:#1e232d; color:#e8e8e8; font-size:18px; cursor:pointer; }
-  #mic.rec { background:#b03030; animation: pulse .4s infinite alternate; }
-  #send { padding:0 20px; border:0; border-radius:10px; background:#c93a2e; color:#fff; font-size:15px; cursor:pointer; }
-  #send:disabled { opacity:.5; cursor:default; }
-
-  #scare { position:fixed; inset:0; background:#000; display:none; align-items:center; justify-content:center; z-index:100; cursor:pointer; }
-  #scare.show { display:flex; animation: scareIn .25s steps(2) 2; }
-  #scare svg { width:min(80vw,60vh); height:min(80vw,60vh); }
-  #scare .eyeRed { animation: redPulse .2s infinite alternate; }
-  @keyframes scareIn { 0%{opacity:0; transform:scale(1.4)} 100%{opacity:1; transform:scale(1)} }
-  @keyframes redPulse { from{fill:#ff0000} to{fill:#440000} }
-
-  @media (max-width:800px) {
-    #side { position:absolute; z-index:5; height:100%; }
-    #side.hidden { display:none; }
-    #mascot { width:200px; height:200px; }
-  }
+:root{--bg:#090d18;--panel:#111827;--panel2:#182236;--line:#26344d;--text:#f4f7ff;--muted:#93a4bf;--accent:#8b5cf6;--cyan:#22d3ee;--pink:#fb7185;--good:#34d399}
+*{box-sizing:border-box}body{margin:0;height:100vh;overflow:hidden;background:radial-gradient(ellipse at 15% 0%,#25204b 0,transparent 36%),radial-gradient(ellipse at 90% 100%,#12354a 0,transparent 34%),var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+button,textarea,select{font:inherit}button{transition:.2s ease;cursor:pointer}#stage{height:100%;display:flex;max-width:1680px;margin:auto;padding:18px;gap:16px}
+#stage.shake{animation:quake .4s}@keyframes quake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}50%{transform:translateX(5px)}75%{transform:translateX(-3px)}}
+#flash{position:fixed;inset:0;background:radial-gradient(circle,#fb718555,transparent 65%);pointer-events:none;opacity:0;z-index:50}#flash.go{animation:flash .55s}@keyframes flash{to{opacity:0}}
+#side{width:286px;flex:0 0 286px;background:linear-gradient(160deg,#1a2440ee,#101827f2);border:1px solid #34415e;border-radius:26px;padding:20px;display:flex;flex-direction:column;align-items:center;gap:16px;overflow:auto;box-shadow:0 24px 70px #0007;backdrop-filter:blur(18px)}
+#side.hidden{display:none}#mascot{width:210px;height:210px;cursor:pointer;filter:drop-shadow(0 14px 24px #8b5cf655);background:radial-gradient(circle,#8b5cf622,transparent 68%);border-radius:50%}
+#face{transform-origin:60px 60px}#face.happy,#face.proud{animation:bounce 1.2s ease-in-out infinite}@keyframes bounce{50%{transform:translateY(-8px)}}
+#face.angry{animation:rage .2s infinite}#face.shout{animation:rage .12s infinite}@keyframes rage{25%{transform:rotate(-3deg)}75%{transform:rotate(3deg)}}
+#pill{transition:.2s}#face.angry #pill,#face.shout #pill{fill:#ffe4e6;stroke:#fb7185}#face.talking #pill{animation:pulse .3s infinite alternate}@keyframes pulse{to{transform:scale(1.04)}}
+.eye{transform-box:fill-box;transform-origin:center;animation:blink 4s infinite}@keyframes blink{94%,100%{transform:scaleY(1)}97%{transform:scaleY(.08)}}
+#face.angry .eye,#face.shout .eye{animation:none;transform:scaleY(.5)}#face.shout .eye{fill:#ef4444}#brows{opacity:0}#face.angry #brows,#face.shout #brows{opacity:1}#steam{opacity:0}#face.angry #steam,#face.shout #steam{opacity:1;animation:steam .6s infinite}@keyframes steam{to{transform:translateY(-12px);opacity:0}}
+.brand{width:100%;display:flex;align-items:center;gap:10px}.brand-mark{width:38px;height:38px;border-radius:13px;background:linear-gradient(135deg,var(--accent),var(--cyan));display:grid;place-items:center;font-weight:900;font-size:20px;box-shadow:0 8px 24px #8b5cf655}.brand strong{font-size:19px;letter-spacing:.3px}.brand small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+#mood-label{font-size:13px;font-weight:700;color:#c4b5fd;text-align:center;min-height:20px;letter-spacing:.2px}#mood-label.red{color:#fda4af}
+.side-card{width:100%;padding:14px;border:1px solid #34415e;border-radius:17px;background:#ffffff08}
+#progLabel{font-size:12px;color:var(--muted);margin-bottom:9px;display:flex;justify-content:space-between}#pct{color:#fff;font-size:15px}#bar{height:9px;background:#28344b;border-radius:20px;overflow:hidden}#fill{height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--cyan));border-radius:20px;transition:width .5s}
+#tools{width:100%;display:grid;gap:8px}.btn{width:100%;padding:11px 12px;border:1px solid #34415e;border-radius:13px;background:#ffffff0a;color:var(--text);font-size:12px;font-weight:650}.btn:hover{background:#ffffff17;transform:translateY(-1px)}
+.side-note{margin-top:auto;color:#70819e;font-size:11px;text-align:center;line-height:1.5}
+#main{flex:1;min-width:0;display:flex;flex-direction:column;border:1px solid #2a3852;border-radius:26px;overflow:hidden;background:#0e1625dd;box-shadow:0 24px 70px #0008;backdrop-filter:blur(18px)}
+header{padding:17px 22px;background:#131e30;border-bottom:1px solid #293750;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+header h1{font-size:18px;margin:0 auto 0 0;letter-spacing:.2px}#toggle{width:38px;height:38px;border:1px solid #35435d;border-radius:12px;background:#ffffff0a;color:white;font-size:18px}
+.tab{padding:9px 13px;border:1px solid #34415e;border-radius:12px;background:#ffffff08;color:#b9c7dc;font-size:12px;font-weight:700}.tab:hover{background:#ffffff15}.tab.active{background:linear-gradient(120deg,#7c3aed,#4f46e5);border-color:#8b5cf6;color:white;box-shadow:0 6px 20px #7c3aed44}
+select,#clear{padding:9px 11px;border-radius:11px;border:1px solid #34415e;background:#111b2b;color:#dbeafe;font-size:12px}#clear:hover{border-color:var(--pink);color:#fecdd3}
+#chat{flex:1;overflow-y:auto;padding:28px clamp(16px,5vw,72px);display:flex;flex-direction:column;gap:15px;scroll-behavior:smooth}
+#chat:empty:after{content:"Suhbat shu yerda boshlanadi";color:#64748b;text-align:center;margin:auto}
+.msg{max-width:min(720px,84%);padding:14px 17px;border-radius:19px;white-space:pre-wrap;line-height:1.55;font-size:14px;word-wrap:break-word;box-shadow:0 8px 22px #0002}
+.user{align-self:flex-end;background:linear-gradient(135deg,#5b55d9,#3976c9);border:1px solid #8b8cfb55;border-bottom-right-radius:6px;color:#fff}
+.bot{align-self:flex-start;background:linear-gradient(145deg,#1c2a40,#172337);border:1px solid #34445f;border-bottom-left-radius:6px;color:#e6edf8}
+.bot.angry{border-color:#fb7185;box-shadow:0 0 24px #fb718522}.glitch.on{animation:glitch .32s steps(3)}@keyframes glitch{25%{transform:translateX(-3px);text-shadow:2px 0 #f00,-2px 0 #0ff}50%{transform:translateX(3px)}}
+form{display:flex;gap:10px;padding:16px 20px;background:#131e30;border-top:1px solid #293750;align-items:flex-end}
+textarea{flex:1;min-height:48px;max-height:140px;padding:14px 16px;border-radius:15px;border:1px solid #35445e;background:#0b1422;color:white;font-size:14px;resize:none;outline:none}textarea:focus{border-color:#8b5cf6;box-shadow:0 0 0 3px #8b5cf622}textarea::placeholder{color:#71819b}
+#mic{height:48px;width:48px;border:1px solid #35445e;border-radius:14px;background:#1b2940;color:white;font-size:19px}#mic:hover{background:#293a59}#mic.rec{background:#be3454;animation:pulse .4s infinite alternate}
+#send{height:48px;padding:0 23px;border:0;border-radius:14px;background:linear-gradient(120deg,#8b5cf6,#4f7df3);color:#fff;font-size:13px;font-weight:800;box-shadow:0 8px 22px #6d55e844}#send:hover{filter:brightness(1.12);transform:translateY(-1px)}#send:disabled{opacity:.5;cursor:default}
+#scare{position:fixed;inset:0;background:#000;display:none;align-items:center;justify-content:center;z-index:100;cursor:pointer}#scare.show{display:flex;animation:scareIn .25s steps(2) 2}#scare svg{width:min(80vw,60vh);height:min(80vw,60vh)}#scare .eyeRed{animation:redPulse .2s infinite alternate}@keyframes scareIn{from{opacity:0;transform:scale(1.4)}to{opacity:1;transform:scale(1)}}@keyframes redPulse{to{fill:#440000}}
+@media(max-width:900px){#stage{padding:8px;gap:8px}#side{width:230px;flex-basis:230px;padding:14px}#mascot{width:170px;height:170px}header{padding:12px}#chat{padding:18px}}
+@media(max-width:680px){#stage{padding:0;gap:0}#main{border-radius:0;border:0}#side{position:fixed;z-index:20;inset:8px auto 8px 8px;width:min(290px,85vw);height:auto;box-shadow:0 20px 80px #000c}#side.hidden{display:none}header{gap:7px}header h1{font-size:16px}.tab{padding:8px 9px;font-size:11px}select{max-width:120px}#chat{padding:16px 12px}.msg{max-width:92%;font-size:13px}form{padding:10px}#send{padding:0 14px}}
 </style>
 </head>
 <body>
@@ -215,6 +166,7 @@ HTML = r"""<!DOCTYPE html>
 
 <div id="stage">
   <div id="side">
+    <div class="brand"><div class="brand-mark">H</div><div><strong>HOPPY</strong><small>YOUR AI ENGLISH COACH</small></div></div>
     <svg id="mascot" viewBox="0 0 120 120">
       <g id="face">
         <g id="steam">
@@ -232,14 +184,15 @@ HTML = r"""<!DOCTYPE html>
       </g>
     </svg>
     <div id="mood-label">Tayyor, qachon tayyor bo'lsang</div>
-    <div id="progressBox">
-      <div id="progLabel">Daraja: <b id="pct">0</b>%</div>
+    <div id="progressBox" class="side-card">
+      <div id="progLabel"><span>O‘RGANISH JARAYONI</span><b><span id="pct">0</span>%</b></div>
       <div id="bar"><div id="fill"></div></div>
     </div>
     <div id="tools">
       <button class="btn" id="speakBtn">🔊 Ovoz: yoqilgan</button>
-      <button class="btn" id="resetProg">Darajani nolga qaytarish</button>
+      <button class="btn" id="resetProg">↻ Darajani qayta boshlash</button>
     </div>
+    <div class="side-note">Kichik qadamlar. Katta natijalar.<br>Har kuni ozgina mashq qil.</div>
   </div>
 
   <div id="main">
